@@ -1,9 +1,9 @@
 `include "parameter.v"
 
 module image_read #(
-    WIDTH = 768,
+    parameter WIDTH = 768,
     HEIGHT = 512,
-    INPUT_FILE = "../images/main.hex",
+    INPUT_FILE = "../images/racoon.hex",
     STARTUP_DELAY = 100,  //Delay during startup time
     HSYNC_DELAY = 160,  //Hsync pulse delay
     BRIGHTNESS_VALUE = 100,  //For brightness operation
@@ -29,5 +29,165 @@ module image_read #(
     output ctrl_done  // Done flag
 );
 
-parameter sizeOfWidth = 8;
+  parameter sizeOfWidth = 8;  // Data width
+  parameter imageDataLenght = WIDTH * HEIGHT * 3;  // Lenght in bytes, each byte represent one of Red, Green, Blue value 
+
+  // local parameters for FSM
+  localparam ST_IDLE = 2'b00;  // Idle state
+  localparam ST_VSYNC = 2'b01;  // State for creating vsync
+  localparam ST_HSYNC = 2'b10;  // State for creating hsync
+  localparam ST_DATA = 2'b11;  // State for data processing
+
+  reg [1:0] currentState, nextState;
+  reg start;  // Signal the FSM begin to operate
+  reg HRESETDelay;  // Use to create start signal
+  reg vsyncControlSignal, hsyncControlSignal;
+  reg [8:0] vsyncControlCounter, hsyncControlCounter;
+  reg dataProcessingControlSignal;
+
+  reg [7:0] totalMemory[0:imageDataLenght - 1];  // Memory to store 8-bit data image 
+
+  // Temporary memory to save image data 
+  integer temp_BMP[0:imageDataLenght - 1];
+  integer tempRedValue[0:WIDTH * HEIGHT - 1];
+  integer tempGreenValue[0:WIDTH * HEIGHT - 1];
+  integer tempBlueValue[0:WIDTH * HEIGHT - 1];
+
+  integer i, j;  // Counting variables
+
+  integer
+      tempConBriR0,
+      tempConBriR1,
+      tempConBriG0,
+      tempConBriG1,
+      tempConBriB0,
+      tempBrightB1;  // Temporary variables in contrast and brightness operation
+
+  integer
+      tempInvThre1,
+      tempInvThre2,
+      tempInvThre3,
+      tempInvThre4;  // Temporary variables in invert and threshold operation
+
+  reg [ 9:0] rowIndex;
+  reg [10:0] colIndex;
+  reg [18:0] pixelDataCount;
+
+  // --- READING IMAGE ---
+  initial $readmemh(INPUT_FILE, totalMemory, 0, imageDataLenght - 1);
+
+  always @(start) begin
+    if (start == 1'b1) begin
+      // Read image hex value into temporary varibale
+      for (i = 0; i < WIDTH * HEIGHT * 3; i = i + 1) begin
+        temp_BMP[i] = totalMemory[i][7:0];
+      end
+
+      // Matlab script to convert from bitmap image to hex process from the last row to the first row, so the verilog code need to operate the same.
+      for (i = 0; i < HEIGHT; i = i + 1) begin
+        for (j = 0; j < WIDTH; j = j + 1) begin
+          tempRedValue[WIDTH*i+j]   = temp_BMP[WIDTH*3*(HEIGHT-i-1)+3*j+0];
+          tempGreenValue[WIDTH*i+j] = temp_BMP[WIDTH*3*(HEIGHT-i-1)+3*j+1];
+          tempBlueValue[WIDTH*i+j]  = temp_BMP[WIDTH*3*(HEIGHT-i-1)+3*j+2];
+        end
+      end
+    end
+  end
+
+  //--- BEGIN TO READ IMAGE FILE ONCE RESET WAS HIGH ---
+
+  always @(posedge HCLK, negedge HRESET) begin
+    if (!HRESET) begin
+      start <= 0;
+      HRESETDelay <= 0;
+    end else begin
+      HRESETDelay <= HRESET;
+      if (HRESET == 1'b1 && HRESETDelay == 1'b0) start <= 1'b1;
+      else start <= 1'b0;
+    end
+  end
+
+  /*--- FSM for reading RGB888 data from memory ---
+    --- Creating hsync and vsync pulse --- */
+
+  always @(posedge HCLK, negedge HRESET) begin
+    if (~HRESET) currentState <= ST_IDLE;
+    else currentState <= nextState;
+  end
+
+  //--- State transition ---
+
+  always @(*) begin
+    case (currentState)
+      ST_IDLE: begin
+        if (start) nextState = ST_VSYNC;
+        else nextState = ST_IDLE;
+      end
+      ST_VSYNC: begin
+        if (vsyncControlCounter == STARTUP_DELAY) nextState = ST_HSYNC;
+        else nextState = ST_VSYNC;
+      end
+      ST_HSYNC: begin
+        if (hsyncControlCounter == HSYNC_DELAY) nextState = ST_DATA;
+        else nextState = ST_HSYNC;
+      end
+      ST_DATA: begin
+        if (ctrl_done) nextState = ST_IDLE;
+        else begin
+          if (colIndex == WIDTH - 2) nextState = ST_HSYNC;
+          else nextState = ST_DATA;
+        end
+      end
+    endcase
+  end
+
+  //--- Counting for time period of vsync, hsync, data processing ---
+
+  always @(*) begin
+    vsyncControlSignal = 0;
+    hsyncControlSignal = 0;
+    dataProcessingControlSignal = 0;
+
+    case (currentState)
+      ST_VSYNC: vsyncControlSignal = 1;
+      ST_HSYNC: hsyncControlSignal = 1;
+      ST_DATA:  dataProcessingControlSignal = 1;
+    endcase
+  end
+
+  // Counter for vsync, hsync
+  always @(posedge HCLK, negedge HRESET) begin
+    begin
+      if (~HRESET) begin
+        vsyncControlCounter <= 0;
+        hsyncControlCounter <= 0;
+      end else begin
+        if (vsyncControlSignal) vsyncControlCounter = vsyncControlCounter + 1;
+        else vsyncControlCounter <= 0;
+        if (hsyncControlSignal) hsyncControlCounter = hsyncControlCounter + 1;
+        else hsyncControlCounter <= 0;
+      end
+    end
+  end
+
+  // Counting column and row index for reading memory
+  always @(posedge HCLK, negedge HRESET) begin
+    if (~HRESET) begin
+      rowIndex <= 0;
+      colIndex <= 0;
+    end else begin
+      if (dataProcessingControlSignal) begin
+        if (colIndex == WIDTH - 2) begin
+          rowIndex <= rowIndex + 1;
+          colIndex <= 0;
+        end else colIndex <= colIndex + 2;  // Reading 2 pixels in parallel
+      end
+    end
+  end
+
+  //--- Data counting --- 
+
+  always @(posedge HCLK, negedge HRESET) begin
+  end
+
 endmodule
