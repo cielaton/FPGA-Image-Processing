@@ -28,4 +28,6 @@ module image_read #(
     // We will process and transmit 2 pixels in parallel for faster processing
     output ctrl_done  // Done flag
 );
+
+parameter sizeOfWidth = 8;
 endmodule
