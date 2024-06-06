@@ -64,9 +64,9 @@ module image_read #(
       tempBrightB1;  // Temporary variables in contrast and brightness operation
 
   integer
+      tempInvThre,
       tempInvThre1,
       tempInvThre2,
-      tempInvThre3,
       tempInvThre4;  // Temporary variables in invert and threshold operation
 
   reg [ 9:0] rowIndex;
@@ -261,6 +261,42 @@ module image_read #(
         tempConBriB1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
         if (tempConBriB1 < 0) DATA_B1 = 0;
         else DATA_B1 = tempConBriB1;
+      end
+`endif
+
+`ifdef INVERT_OPERATION
+      tempInvThre2 = (tempRedValue[WIDTH*rowIndex+colIndex] + tempGreenValue[WIDTH*rowIndex+colIndex] + tempBlueValue[WIDTH*rowIndex+colIndex]) / 3;
+      DATA_R0 = 255 - tempInvThre2;
+      DATA_G0 = 255 - tempInvThre2;
+      DATA_B0 = 255 - tempInvThre2;
+
+      tempInvThre4 = (tempRedValue[WIDTH*rowIndex+colIndex + 1] + tempGreenValue[WIDTH*rowIndex+colIndex + 1] + tempBlueValue[WIDTH*rowIndex+colIndex + 1]) / 3;
+      DATA_R1 = 255 - tempInvThre4;
+      DATA_G1 = 255 - tempInvThre4;
+      DATA_B1 = 255 - tempInvThre4;
+`endif
+
+`ifdef THRESHOLD_OPERATION
+      tempInvThre = (tempRedValue[WIDTH*rowIndex+colIndex] + tempGreenValue[WIDTH*rowIndex+colIndex] + tempBlueValue[WIDTH*rowIndex+colIndex]) / 3;
+      if (tempInvThre > THRESHOLD) begin
+        DATA_R0 = 255;
+        DATA_G0 = 255;
+        DATA_B0 = 255;
+      end else begin
+        DATA_R0 = 0;
+        DATA_G0 = 0;
+        DATA_B0 = 0;
+      end
+
+      tempInvThre1 = (tempRedValue[WIDTH*rowIndex+colIndex+1] + tempGreenValue[WIDTH*rowIndex+colIndex+1] + tempBlueValue[WIDTH*rowIndex+colIndex+1]) / 3;
+      if (tempInvThre1 > THRESHOLD) begin
+        DATA_R1 = 255;
+        DATA_G1 = 255;
+        DATA_B1 = 255;
+      end else begin
+        DATA_R1 = 0;
+        DATA_G1 = 0;
+        DATA_B1 = 0;
       end
 `endif
     end
