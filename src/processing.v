@@ -188,6 +188,33 @@ module image_read #(
   //--- Data counting --- 
 
   always @(posedge HCLK, negedge HRESET) begin
+    if (~HRESET) pixelDataCount <= 0;
+    else begin
+      if (dataProcessingControlSignal) pixelDataCount <= pixelDataCount + 1;
+    end
+  end
+
+  assign VSYNC = vsyncControlSignal;
+  assign ctrl_done = (pixelDataCount == 196607) ? 1'b1 : 1'b0;
+
+  //--- Image processing ---
+
+  always @(*) begin
+    HSYNC   = 1'b0;
+    DATA_R0 = 0;
+    DATA_G0 = 0;
+    DATA_B0 = 0;
+    DATA_R1 = 0;
+    DATA_G1 = 0;
+    DATA_B1 = 0;
+
+    if (dataProcessingControlSignal) begin
+      HSYNC = 1'b1;
+      // BRIGHTNESS ADDING OPERATION
+`ifdef BRIGHTNESS_OPERATION
+  if (SIGN)
+`endif
+    end
   end
 
 endmodule
