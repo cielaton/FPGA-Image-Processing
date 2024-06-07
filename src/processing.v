@@ -71,7 +71,7 @@ module image_read #(
 
   reg [ 9:0] rowIndex;
   reg [10:0] colIndex;
-  reg [18:0] pixelDataCount;
+  reg [18:0] pixelDataCount; // For creating the done flag
 
   // --- READING IMAGE ---
   initial $readmemh(INPUT_FILE, totalMemory, 0, imageDataLenght - 1);
