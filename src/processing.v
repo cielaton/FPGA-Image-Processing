@@ -48,7 +48,7 @@ module image_read #(
   reg [7:0] totalMemory[0:imageDataLenght - 1];  // Memory to store 8-bit data image 
 
   // Temporary memory to save image data
-  integer temp_BMP[0:imageDataLenght - 1];
+  integer tempBMP[0:imageDataLenght - 1];
   integer tempRedValue[0:WIDTH * HEIGHT - 1];
   integer tempGreenValue[0:WIDTH * HEIGHT - 1];
   integer tempBlueValue[0:WIDTH * HEIGHT - 1];
@@ -80,15 +80,15 @@ module image_read #(
     if (start == 1'b1) begin
       // Read image hex value into temporary varibale
       for (i = 0; i < WIDTH * HEIGHT * 3; i = i + 1) begin
-        temp_BMP[i] = totalMemory[i][7:0];
+        tempBMP[i] = totalMemory[i][7:0];
       end
 
       // Matlab script to convert from bitmap image to hex process from the last row to the first row, so the verilog code need to operate the same.
       for (i = 0; i < HEIGHT; i = i + 1) begin
         for (j = 0; j < WIDTH; j = j + 1) begin
-          tempRedValue[WIDTH*i+j]   = temp_BMP[WIDTH*3*(HEIGHT-i-1)+3*j+0];
-          tempGreenValue[WIDTH*i+j] = temp_BMP[WIDTH*3*(HEIGHT-i-1)+3*j+1];
-          tempBlueValue[WIDTH*i+j]  = temp_BMP[WIDTH*3*(HEIGHT-i-1)+3*j+2];
+          tempRedValue[WIDTH*i+j]   = tempBMP[WIDTH*3*(HEIGHT-i-1)+3*j+0];
+          tempGreenValue[WIDTH*i+j] = tempBMP[WIDTH*3*(HEIGHT-i-1)+3*j+1];
+          tempBlueValue[WIDTH*i+j]  = tempBMP[WIDTH*3*(HEIGHT-i-1)+3*j+2];
         end
       end
     end
