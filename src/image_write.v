@@ -13,7 +13,8 @@ module image_write #(
     DATA_WRITE_R1,  // 8 bit Red data (even)
     DATA_WRITE_G1,  // 8 bit Green data (even)
     DATA_WRITE_B1,  // 8 bit Blue data (even)
-    output reg write_done
+    output reg write_done,
+    output reg write_file_done
 );
   integer bmpHeader[0:BMP_HEADER_NUM - 1];
   reg [7:0] bmpOut[0:WIDTH*HEIGHT*3-1];  // Temporary memory for the output image
@@ -155,6 +156,8 @@ module image_write #(
         $fwrite(file, "%c", bmpOut[i+4][7:0]);
         $fwrite(file, "%c", bmpOut[i+5][7:0]);
       end
+
+      write_file_done = 1'b1;
     end
   end
 

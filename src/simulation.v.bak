@@ -10,7 +10,6 @@ module simulation ();
   wire [7:0] data_G1;
   wire [7:0] data_B1;
   wire done;
-  wire write_file_done;
 
   image_read #(
       .INPUT_FILE(`INPUT_FILE_NAME)
@@ -40,21 +39,17 @@ module simulation ();
       .DATA_WRITE_R1(data_R1),
       .DATA_WRITE_G1(data_G1),
       .DATA_WRITE_B1(data_B1),
-      .write_done(),
-      .write_file_done(write_file_done)
+      .write_done()
   );
 
   // --- Test vectors ---
-  initial HCLK = 0;
-  always begin
-    #10 HCLK = ~HCLK;
-    if (write_file_done) $finish;
+  initial begin
+    HCLK = 0;
+    forever #10 HCLK = ~HCLK;
   end
 
   initial begin
     HRESET = 0;
     #25 HRESET = 1;
-
   end
-
 endmodule

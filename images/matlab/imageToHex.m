@@ -1,4 +1,4 @@
-b=imread('../racoon.bmp'); % 24-bit BMP image RGB888 
+b=imread('../kodim23.bmp'); % 24-bit BMP image RGB888 
 
 k=1;
 for i=512:-1:1 % image is written from the last row to the first row

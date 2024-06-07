@@ -1,9 +1,8 @@
 `include "parameter.v"
-
 module image_read #(
     parameter WIDTH = 768,
     HEIGHT = 512,
-    INPUT_FILE = "../images/racoon.hex",
+    INPUT_FILE = "../images/kodim24.hex",
     STARTUP_DELAY = 100,  //Delay during startup time
     HSYNC_DELAY = 160,  //Hsync pulse delay
     BRIGHTNESS_VALUE = 100,  //For brightness operation
@@ -61,7 +60,7 @@ module image_read #(
       tempConBriG0,
       tempConBriG1,
       tempConBriB0,
-      tempBrightB1;  // Temporary variables in contrast and brightness operation
+      tempConBriB1;  // Temporary variables in contrast and brightness operation
 
   integer
       tempInvThre,
@@ -71,7 +70,7 @@ module image_read #(
 
   reg [ 9:0] rowIndex;
   reg [10:0] colIndex;
-  reg [18:0] pixelDataCount; // For creating the done flag
+  reg [18:0] pixelDataCount;  // For creating the done flag
 
   // --- READING IMAGE ---
   initial $readmemh(INPUT_FILE, totalMemory, 0, imageDataLenght - 1);
@@ -162,9 +161,9 @@ module image_read #(
         vsyncControlCounter <= 0;
         hsyncControlCounter <= 0;
       end else begin
-        if (vsyncControlSignal) vsyncControlCounter = vsyncControlCounter + 1;
+        if (vsyncControlSignal) vsyncControlCounter <= vsyncControlCounter + 1;
         else vsyncControlCounter <= 0;
-        if (hsyncControlSignal) hsyncControlCounter = hsyncControlCounter + 1;
+        if (hsyncControlSignal) hsyncControlCounter <= hsyncControlCounter + 1;
         else hsyncControlCounter <= 0;
       end
     end
@@ -199,7 +198,7 @@ module image_read #(
 
   //--- Image processing ---
 
-  always @(*) begin
+  always @(posedge HCLK) begin
     HSYNC   = 1'b0;
     DATA_R0 = 0;
     DATA_G0 = 0;
@@ -215,52 +214,52 @@ module image_read #(
       if (SIGN == 1) begin
         tempConBriR0 = tempRedValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
         if (tempConBriR0 > 255) DATA_R0 = 255;
-        else DATA_R0 = tempConBriR0;
+        else DATA_R0 = tempRedValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
 
         tempConBriR1 = tempRedValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
         if (tempConBriR1 > 255) DATA_R1 = 255;
-        else DATA_R1 = tempConBriR1;
+        else DATA_R1 = tempRedValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
 
         tempConBriG0 = tempGreenValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
-        if (tempGreenValue > 255) DATA_G0 = 255;
-        else DATA_G0 = tempConBriG0;
+        if (tempConBriG0 > 255) DATA_G0 = 255;
+        else DATA_G0 = tempGreenValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
 
         tempConBriG1 = tempGreenValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
-        if (tempGreenValue > 255) DATA_G1 = 255;
-        else DATA_G1 = tempConBriG1;
+        if (tempConBriG1 > 255) DATA_G1 = 255;
+        else DATA_G1 = tempGreenValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
 
         tempConBriB0 = tempBlueValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
-        if (tempBlueValue > 255) DATA_B0 = 255;
-        else DATA_B0 = tempConBriB0;
+        if (tempConBriB0 > 255) DATA_B0 = 255;
+        else DATA_B0 = tempBlueValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
 
         tempConBriB1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
-        if (tempBlueValue > 255) DATA_B1 = 255;
-        else DATA_B1 = tempConBriB1;
+        if (tempConBriB1 > 255) DATA_B1 = 255;
+        else DATA_B1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
       end  // BRIGHTNESS SUBTRACTION OPERATION
       else begin
         tempConBriR0 = tempRedValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
         if (tempConBriR0 < 0) DATA_R0 = 0;
-        else DATA_R0 = tempConBriR0;
+        else DATA_R0 = tempRedValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
 
         tempConBriR1 = tempRedValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
         if (tempConBriR1 < 0) DATA_R1 = 0;
-        else DATA_R1 = tempConBriR1;
+        else DATA_R1 = tempRedValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
 
         tempConBriG0 = tempGreenValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
         if (tempConBriG0 < 0) DATA_G0 = 0;
-        else DATA_G0 = tempConBriG0;
+        else DATA_G0 = tempGreenValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
 
         tempConBriG1 = tempGreenValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
         if (tempConBriG1 < 0) DATA_G1 = 0;
-        else DATA_G1 = tempConBriG1;
+        else DATA_G1 = tempGreenValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
 
         tempConBriB0 = tempBlueValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
         if (tempConBriB0 < 0) DATA_B0 = 0;
-        else DATA_B0 = tempConBriB0;
+        else DATA_B0 = tempBlueValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
 
         tempConBriB1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
         if (tempConBriB1 < 0) DATA_B1 = 0;
-        else DATA_B1 = tempConBriB1;
+        else DATA_B1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
       end
 `endif
 
