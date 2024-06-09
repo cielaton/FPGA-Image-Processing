@@ -1,6 +1,6 @@
 module image_write #(
-    parameter WIDTH = 768,
-    HEIGHT = 512,
+    parameter WIDTH = 10,
+    HEIGHT = 5,
     OUTPUT_FILE = "../images/output.bmp",
     BMP_HEADER_NUM = 54  // Header for the bmp file
 ) (
@@ -47,14 +47,22 @@ module image_write #(
     bmpHeader[15] = 0;
     bmpHeader[16] = 0;
     bmpHeader[17] = 0;
-    bmpHeader[18] = 0;
-    bmpHeader[19] = 3;
-    bmpHeader[20] = 0;
-    bmpHeader[21] = 0;
-    bmpHeader[22] = 0;
-    bmpHeader[23] = 2;
-    bmpHeader[24] = 0;
-    bmpHeader[25] = 0;
+    // bmpHeader[18] = 0;
+    // bmpHeader[19] = 3;
+    // bmpHeader[20] = 0;
+    // bmpHeader[21] = 0;
+     bmpHeader[18] = 0;
+     bmpHeader[19] = 0;
+     bmpHeader[20] = 0;
+     bmpHeader[21] = 5;
+    // bmpHeader[22] = 0;
+    // bmpHeader[23] = 2;
+    // bmpHeader[24] = 0;
+    // bmpHeader[25] = 0;
+     bmpHeader[22] = 0;
+     bmpHeader[23] = 0;
+     bmpHeader[24] = 0;
+     bmpHeader[25] = 10;
     bmpHeader[26] = 1;
     bmpHeader[27] = 0;
     bmpHeader[28] = 24;
@@ -69,8 +77,7 @@ module image_write #(
     bmpHeader[37] = 0;
     bmpHeader[38] = 0;
     bmpHeader[39] = 0;
-    bmpHeader[40] = 0;
-    bmpHeader[41] = 0;
+    bmpHeader[40] = 0; bmpHeader[41] = 0;
     bmpHeader[42] = 0;
     bmpHeader[43] = 0;
     bmpHeader[44] = 0;
@@ -127,7 +134,7 @@ module image_write #(
     end
   end
 
-  assign done = (pixelDataCount == 196607) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
+  assign done = (pixelDataCount == WIDTH*HEIGHT/2-1) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
 
 
   always @(posedge HCLK, negedge HRESET) begin

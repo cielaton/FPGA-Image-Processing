@@ -1,4 +1,4 @@
-`define INPUT_FILE_NAME "../images/input/racoon.hex"
+`define INPUT_FILE_NAME "../images/input/racoon_10.hex"
 `define OUTPUT_FILE_NAME "../images/output/output.bmp"
 
 `define INVERT_OPERATION
