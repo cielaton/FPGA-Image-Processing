@@ -75,6 +75,10 @@ module image_read #(
   // --- READING IMAGE ---
   initial $readmemh(INPUT_FILE, totalMemory, 0, imageDataLenght - 1);
 
+  always @(posedge HCLK) begin
+    $display("%h", totalMemory[333]);
+  end
+
   always @(start) begin
     if (start == 1'b1) begin
       // Read image hex value into temporary varibale
