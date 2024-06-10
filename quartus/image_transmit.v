@@ -12,20 +12,23 @@ module image_write #(
     DATA_WRITE_R1,  // 8 bit Red data (even)
     DATA_WRITE_G1,  // 8 bit Green data (even)
     DATA_WRITE_B1,  // 8 bit Blue data (even)
-    output reg write_done,
-	 output reg [7:0] transmitData,
-	 output reg isTransmitted,
-	 input TxD_done,
-	 output reg TxD_start
-);
 
-	integer transmitDataCounter;
+    output reg write_done,
+
+    input TxD_done,
+    output reg TxD_start,
+    output reg [7:0] transmitData,
+    output reg isTransmitted
+);
+  integer transmitDataCounter;
+  wire doneTransmitCounter;
+  reg [10:0] transmitCounter;
+
   integer bmpHeader[0:BMP_HEADER_NUM - 1];
   reg [7:0] bmpOut[0:WIDTH*HEIGHT*3-1];  // Temporary memory for the output image
   reg [18:0] pixelDataCount;  // For creating the done flag
   wire done;  // Done flag
-  wire doneTransmitCounter;
-  reg [10:0] transmitCounter;
+
 
   // Counting variables
   integer i;
@@ -135,63 +138,47 @@ module image_write #(
 
   assign done = (pixelDataCount == WIDTH*HEIGHT/2-1) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
 
-always @(posedge HCLK, negedge HRESET) begin
+  always @(posedge HCLK, negedge HRESET) begin
     begin
       if (~HRESET) transmitCounter <= 0;
       else if (HSYNC) transmitCounter <= transmitCounter + 1;
     end
   end
 
-  assign doneTransmitCounter = (transmitCounter == WIDTH*HEIGHT/8-1) ? 1'b1 : 1'b0;
-  
+  assign doneTransmitCounter = (transmitCounter == WIDTH * HEIGHT / 8 - 1) ? 1'b1 : 1'b0;
+
   always @(posedge HCLK, negedge HRESET) begin
     begin
       if (~HRESET) write_done <= 1'b0;
-//		else if (write_done == 1'b1 && transmitDataCounter < WIDTH*HEIGHT*3 && isTransmitted == 1'b0)
-//		write_done <= 1'b0;
-      else if (write_done == 1'b0)
-		write_done <= done;
+      else if (write_done == 1'b0) write_done <= done;
     end
   end
 
-  // --- Write .bmp file ---
-  //initial file = $fopen(OUTPUT_FILE, "wb+");
-
-  
   always @(posedge doneTransmitCounter, negedge HRESET) begin
-  if (!HRESET) begin
-	transmitDataCounter = 0;
-	  isTransmitted = 1'b0;
-	end else begin 
-	if (doneTransmitCounter == 1'b1 && write_done == 1'b1)
-  transmitDataCounter = transmitDataCounter + 1;
-  if ( transmitDataCounter >= WIDTH*HEIGHT*3 ) begin
-	  transmitDataCounter = WIDTH*HEIGHT*3;
-	  //isTransmitted = 1'b1;
-  end
-  end
+    if (!HRESET) begin
+      transmitDataCounter = 0;
+      isTransmitted = 1'b0;
+    end else begin
+      if (doneTransmitCounter == 1'b1 && write_done == 1'b1)
+        transmitDataCounter = transmitDataCounter + 1;
+      if (transmitDataCounter >= WIDTH * HEIGHT * 3) begin
+        transmitDataCounter = WIDTH * HEIGHT * 3;
+      end
+    end
   end
   always @(posedge HCLK, negedge HRESET) begin
-  if (!HRESET) begin
+    if (!HRESET) begin
 
-		transmitData[7:0] = 8'b00000000;
-		end else begin
-		TxD_start = 0;
-		if (doneTransmitCounter == 1'b1 && write_done == 1'b1 && isTransmitted == 1'b0) begin
-			 //transmitDataCounter <= transmitDataCounter + 1;
-			if ( transmitDataCounter < WIDTH*HEIGHT*3 ) begin
-			transmitData[7:0] = bmpOut[transmitDataCounter][7:0];
-			TxD_start = 1; 
-			//transmitData[7:0] = "a";
-			//write_done <= 1'b0;
-			end
+      transmitData[7:0] = 8'b00000000;
+    end else begin
+      TxD_start = 0;
+      if (doneTransmitCounter == 1'b1 && write_done == 1'b1 && isTransmitted == 1'b0) begin
+        if (transmitDataCounter < WIDTH * HEIGHT * 3) begin
+          transmitData[7:0] = bmpOut[transmitDataCounter][7:0];
+          TxD_start = 1;
+        end
+      end
     end
-	 
-//	 else if (write_done == 1 && transmitDataCounter == WIDTH*HEIGHT*3) begin
-//	 transmitDataCounter = 0;
-//	 isTransmitted = 1'b1;
-//	 end
-	 end
   end
 
 endmodule

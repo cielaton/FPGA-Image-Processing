@@ -65,4 +65,3 @@ module UART_transmitter (
 
   assign TxD = (TxD_state<4) | (TxD_state[3] & TxD_shift[0]);  // put together the start, data and stop bits
 endmodule
-

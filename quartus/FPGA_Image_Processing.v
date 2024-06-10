@@ -1,7 +1,18 @@
-module FPGA_Image_Processing (input clk, 
-input resetButton, input increaseBrightness, input decreaseBrightness, input threshold, input invert,
-output TxD, output started, output doneProcessing, output isTransmitted,
-output increaseBrightnessOut, output decreaseBrightnessOut, output thresholdOut, output invertOut
+module FPGA_Image_Processing (
+    input  clk,
+    input  resetButton,
+    input  increaseBrightness,
+    input  decreaseBrightness,
+    input  threshold,
+    input  invert,
+    output TxD,
+    output started,
+    output doneProcessing,
+    output isTransmitted,
+    output increaseBrightnessOut,
+    output decreaseBrightnessOut,
+    output thresholdOut,
+    output invertOut
 
 );
 
@@ -16,7 +27,7 @@ output increaseBrightnessOut, output decreaseBrightnessOut, output thresholdOut,
   wire [7:0] transmitData;
   wire TxD_done;
   wire write_done;
-  
+
   assign increaseBrightnessOut = increaseBrightness;
   assign decreaseBrightnessOut = decreaseBrightness;
   assign thresholdOut = threshold;
@@ -33,12 +44,21 @@ output increaseBrightnessOut, output decreaseBrightnessOut, output thresholdOut,
       .DATA_R1(data_R1),
       .DATA_G1(data_G1),
       .DATA_B1(data_B1),
-		.started(started),
+      .started(started),
       .ctrl_done(doneProcessing),
-		.increaseBrightness(increaseBrightness), .decreaseBrightness(decreaseBrightness),.threshold(threshold), .invert(invert)
+      .increaseBrightness(increaseBrightness),
+      .decreaseBrightness(decreaseBrightness),
+      .threshold(threshold),
+      .invert(invert)
   );
-  
-  UART_transmitter transmitter (.clk(clk), .TxD_start(TxD_start), .TxD_data(transmitData), .TxD(TxD),.TxD_done(TxD_done));
+
+  UART_transmitter transmitter (
+      .clk(clk),
+      .TxD_start(TxD_start),
+      .TxD_data(transmitData),
+      .TxD(TxD),
+      .TxD_done(TxD_done)
+  );
 
   image_write imageWriteComponent (
       .HCLK(clk),
@@ -51,11 +71,12 @@ output increaseBrightnessOut, output decreaseBrightnessOut, output thresholdOut,
       .DATA_WRITE_G1(data_G1),
       .DATA_WRITE_B1(data_B1),
       .write_done(write_done),
-		.isTransmitted(isTransmitted),
-		.transmitData(transmitData),
-		.TxD_done(TxD_done),
-		.TxD_start(TxD_start)
+      .isTransmitted(isTransmitted),
+      .transmitData(transmitData),
+      .TxD_done(TxD_done),
+      .TxD_start(TxD_start)
   );
 
 
 endmodule
+
