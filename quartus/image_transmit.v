@@ -1,7 +1,6 @@
 module image_write #(
     parameter WIDTH = 10,
     HEIGHT = 5,
-    OUTPUT_FILE = "../images/output.bmp",
     BMP_HEADER_NUM = 54  // Header for the bmp file
 ) (
     input HCLK,  // Clock
@@ -14,12 +13,19 @@ module image_write #(
     DATA_WRITE_G1,  // 8 bit Green data (even)
     DATA_WRITE_B1,  // 8 bit Blue data (even)
     output reg write_done,
-    output reg write_file_done
+	 output reg [7:0] transmitData,
+	 output reg isTransmitted,
+	 input TxD_done,
+	 output reg TxD_start
 );
+
+	integer transmitDataCounter;
   integer bmpHeader[0:BMP_HEADER_NUM - 1];
   reg [7:0] bmpOut[0:WIDTH*HEIGHT*3-1];  // Temporary memory for the output image
   reg [18:0] pixelDataCount;  // For creating the done flag
   wire done;  // Done flag
+  wire doneTransmitCounter;
+  reg [10:0] transmitCounter;
 
   // Counting variables
   integer i;
@@ -108,7 +114,7 @@ module image_write #(
         bmpOut[k] <= 0;
       end
     end else begin
-      if (HSYNC) begin
+      if (HSYNC && write_done == 1'b0) begin
         bmpOut[WIDTH*3*(HEIGHT-rowIndex-1)+6*colIndex+2] <= DATA_WRITE_R0;
         bmpOut[WIDTH*3*(HEIGHT-rowIndex-1)+6*colIndex+1] <= DATA_WRITE_G0;
         bmpOut[WIDTH*3*(HEIGHT-rowIndex-1)+6*colIndex+0] <= DATA_WRITE_B0;
@@ -127,38 +133,65 @@ module image_write #(
     end
   end
 
-  assign done = (pixelDataCount == 196607) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
+  assign done = (pixelDataCount == WIDTH*HEIGHT/2-1) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
 
+always @(posedge HCLK, negedge HRESET) begin
+    begin
+      if (~HRESET) transmitCounter <= 0;
+      else if (HSYNC) transmitCounter <= transmitCounter + 1;
+    end
+  end
 
+  assign doneTransmitCounter = (transmitCounter == WIDTH*HEIGHT/8-1) ? 1'b1 : 1'b0;
+  
   always @(posedge HCLK, negedge HRESET) begin
     begin
-      if (~HRESET) write_done <= 0;
-      else write_done <= done;
+      if (~HRESET) write_done <= 1'b0;
+//		else if (write_done == 1'b1 && transmitDataCounter < WIDTH*HEIGHT*3 && isTransmitted == 1'b0)
+//		write_done <= 1'b0;
+      else if (write_done == 1'b0)
+		write_done <= done;
     end
   end
 
   // --- Write .bmp file ---
-  initial file = $fopen(OUTPUT_FILE, "wb+");
+  //initial file = $fopen(OUTPUT_FILE, "wb+");
 
-  always @(write_done) begin
-    if (write_done == 1'b1) begin
-      // Write the header
-      for (i = 0; i < BMP_HEADER_NUM; i = i + 1) begin
-        $fwrite(file, "%c", bmpHeader[i][7:0]);
-      end
+  
+  always @(posedge doneTransmitCounter, negedge HRESET) begin
+  if (!HRESET) begin
+	transmitDataCounter = 0;
+	  isTransmitted = 1'b0;
+	end else begin 
+	if (doneTransmitCounter == 1'b1 && write_done == 1'b1)
+  transmitDataCounter = transmitDataCounter + 1;
+  if ( transmitDataCounter >= WIDTH*HEIGHT*3 ) begin
+	  transmitDataCounter = WIDTH*HEIGHT*3;
+	  //isTransmitted = 1'b1;
+  end
+  end
+  end
+  always @(posedge HCLK, negedge HRESET) begin
+  if (!HRESET) begin
 
-      for (i = 0; i < WIDTH * HEIGHT * 3; i = i + 6) begin
-        // Write the image data to the file
-        $fwrite(file, "%c", bmpOut[i+0][7:0]);
-        $fwrite(file, "%c", bmpOut[i+1][7:0]);
-        $fwrite(file, "%c", bmpOut[i+2][7:0]);
-        $fwrite(file, "%c", bmpOut[i+3][7:0]);
-        $fwrite(file, "%c", bmpOut[i+4][7:0]);
-        $fwrite(file, "%c", bmpOut[i+5][7:0]);
-      end
-
-      write_file_done = 1'b1;
+		transmitData[7:0] = 8'b00000000;
+		end else begin
+		TxD_start = 0;
+		if (doneTransmitCounter == 1'b1 && write_done == 1'b1 && isTransmitted == 1'b0) begin
+			 //transmitDataCounter <= transmitDataCounter + 1;
+			if ( transmitDataCounter < WIDTH*HEIGHT*3 ) begin
+			transmitData[7:0] = bmpOut[transmitDataCounter][7:0];
+			TxD_start = 1; 
+			//transmitData[7:0] = "a";
+			//write_done <= 1'b0;
+			end
     end
+	 
+//	 else if (write_done == 1 && transmitDataCounter == WIDTH*HEIGHT*3) begin
+//	 transmitDataCounter = 0;
+//	 isTransmitted = 1'b1;
+//	 end
+	 end
   end
 
 endmodule

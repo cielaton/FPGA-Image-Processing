@@ -1,7 +1,6 @@
-`include "parameter.v"
+//`include "parameter.v"
 module image_read #(
-parameter WIDTH = 768, HEIGHT = 512,
-    INPUT_FILE = "../images/kodim24.hex",
+parameter WIDTH = 10, HEIGHT = 5,
     STARTUP_DELAY = 100,  //Delay during startup time
     HSYNC_DELAY = 160,  //Hsync pulse delay
     BRIGHTNESS_VALUE = 100,  //For brightness operation
@@ -24,7 +23,8 @@ parameter WIDTH = 768, HEIGHT = 512,
     output reg [7:0] DATA_G1,  // 8 bit Green data (odd)
     output reg [7:0] DATA_B1,  // 8 bit Blue data (odd)
     // We will process and transmit 2 pixels in parallel for faster processing
-    output ctrl_done  // Done flag
+    output ctrl_done,  // Done flag
+	 input increaseBrightness, input decreaseBrightness, input threshold, input invert, output started
 );
 
   parameter sizeOfWidth = 8;  // Data width
@@ -70,6 +70,8 @@ parameter WIDTH = 768, HEIGHT = 512,
   reg [ 9:0] rowIndex;
   reg [10:0] colIndex;
   reg [18:0] pixelDataCount;  // For creating the done flag
+  
+  assign started = start;
 
   // --- READING IMAGE ---
 initial begin
@@ -103,7 +105,7 @@ end
     end else begin
       HRESETDelay <= HRESET;
       if (HRESET == 1'b1 && HRESETDelay == 1'b0) start <= 1'b1;
-      else start <= 1'b0;
+      //else start <= 1'b0;
     end
   end
 
@@ -210,9 +212,8 @@ end
 
     if (dataProcessingControlSignal) begin
       HSYNC = 1'b1;
-`ifdef BRIGHTNESS_OPERATION
       // BRIGHTNESS ADDING OPERATION
-      if (SIGN == 1) begin
+      if (increaseBrightness == 1'b1) begin
         tempConBriR0 = tempRedValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
         if (tempConBriR0 > 255) DATA_R0 = 255;
         else DATA_R0 = tempRedValue[WIDTH*rowIndex+colIndex] + BRIGHTNESS_VALUE;
@@ -237,7 +238,7 @@ end
         if (tempConBriB1 > 255) DATA_B1 = 255;
         else DATA_B1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] + BRIGHTNESS_VALUE;
       end  // BRIGHTNESS SUBTRACTION OPERATION
-      else begin
+      else if (decreaseBrightness == 1'b1) begin
         tempConBriR0 = tempRedValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
         if (tempConBriR0 < 0) DATA_R0 = 0;
         else DATA_R0 = tempRedValue[WIDTH*rowIndex+colIndex] - BRIGHTNESS_VALUE;
@@ -262,9 +263,8 @@ end
         if (tempConBriB1 < 0) DATA_B1 = 0;
         else DATA_B1 = tempBlueValue[WIDTH*rowIndex+colIndex+1] - BRIGHTNESS_VALUE;
       end
-`endif
-
-`ifdef INVERT_OPERATION
+		
+		else if (invert == 1'b1) begin
       tempInvThre2 = (tempRedValue[WIDTH*rowIndex+colIndex] + tempGreenValue[WIDTH*rowIndex+colIndex] + tempBlueValue[WIDTH*rowIndex+colIndex]) / 3;
       DATA_R0 = 255 - tempInvThre2;
       DATA_G0 = 255 - tempInvThre2;
@@ -274,18 +274,17 @@ end
       DATA_R1 = 255 - tempInvThre4;
       DATA_G1 = 255 - tempInvThre4;
       DATA_B1 = 255 - tempInvThre4;
-`endif
-
-`ifdef THRESHOLD_OPERATION
+		end
+		else if (threshold == 1'b1) begin
       tempInvThre = (tempRedValue[WIDTH*rowIndex+colIndex] + tempGreenValue[WIDTH*rowIndex+colIndex] + tempBlueValue[WIDTH*rowIndex+colIndex]) / 3;
       if (tempInvThre > THRESHOLD) begin
-        DATA_R0 = 255;
-        DATA_G0 = 255;
-        DATA_B0 = 255;
+        DATA_R0 <= 255;
+        DATA_G0 <= 255;
+        DATA_B0 <= 255;
       end else begin
-        DATA_R0 = 0;
-        DATA_G0 = 0;
-        DATA_B0 = 0;
+        DATA_R0 <= 0;
+        DATA_G0 <= 0;
+        DATA_B0 <= 0;
       end
 
       tempInvThre1 = (tempRedValue[WIDTH*rowIndex+colIndex+1] + tempGreenValue[WIDTH*rowIndex+colIndex+1] + tempBlueValue[WIDTH*rowIndex+colIndex+1]) / 3;
@@ -298,8 +297,16 @@ end
         DATA_G1 = 0;
         DATA_B1 = 0;
       end
-`endif
     end
+	 else begin
+	 DATA_R0 <= tempRedValue[WIDTH*rowIndex+colIndex];
+	 DATA_R1 <= tempRedValue[WIDTH*rowIndex+colIndex+1];
+	 DATA_G0 <= tempGreenValue[WIDTH*rowIndex+colIndex];
+	 DATA_G1 <= tempGreenValue[WIDTH*rowIndex+colIndex+1];
+	 DATA_B0 <= tempBlueValue[WIDTH*rowIndex+colIndex];
+	 DATA_B1 <= tempBlueValue[WIDTH*rowIndex+colIndex+1];
+	 end
+	 end
   end
 
 endmodule
