@@ -17,48 +17,51 @@ done
 
 stty -F "$INPUT_PORT" speed 115200 cs8 cstopb -icrnl
 
+while read -rs -N 1 value; do
+  # printf "%s" "$(printf "%c" "$value" | xxd -p)"
+  IMAGE_DATA+="$(printf "%c" "$value" | xxd -p)"
+done <"$INPUT_PORT"
+
 gum style --border double --width 80 --align center --margin "1 2" --padding "1 1" "FPGA Image Processing Client"
 
 while [[ "$IS_NOT_MATCHED" == true ]]; do
-while read -rs -N 1 value; do
-  IMAGE_HEADER=$(printf "%c" "$value" | xxd -p)
-  break
-done <"$INPUT_PORT"
-BACKUP="../images/input/racoon.bmp"
+  while read -rs -N 1 value; do
+    IMAGE_HEADER=$(printf "%c" "$value" | xxd -p)
+    break
+  done <"$INPUT_PORT"
 
-
-echo "Please choose and operation to see the image: "
+  echo "Please choose and operation to see the image: "
 
   OPERATION=$(gum choose "Default" "Increase brightness" "Decrease brightness" "Invert" "Threshold" "Quit")
 
   case "$OPERATION" in
   "Default")
-    if [[ $DEFAULT == $IMAGE_HEADER ]]; then
-      ./convert_to_bmp.sh -i increase_brightness
-      viewnior ../images/input/kodim.bmp
+    if [[ $DEFAULT == [[$IMAGE_HEADER]] ]]; then
+      ./convert_to_bmp.sh -o default -i "$IMAGE_DATA"
+      viewnior ../images/output/default.bmp
     fi
     ;;
   "Increase brightness")
-    if [[ $INCREASE_BRIGHTNESS == $IMAGE_HEADER ]]; then
-      ./convert_to_bmp.sh -i increase_brightness
+    if [[ $INCREASE_BRIGHTNESS == [[$IMAGE_HEADER]] ]]; then
+      ./convert_to_bmp.sh -o increase_brightness -i "$IMAGE_DATA"
       viewnior ../images/output/increase_brightness.bmp
     fi
     ;;
   "Decrease brightness")
-    if [[ $DECREASE_BRIGHTNESS == $IMAGE_HEADER ]]; then
-      ./convert_to_bmp.sh -i decrease_brightness
+    if [[ $DECREASE_BRIGHTNESS == [[$IMAGE_HEADER]] ]]; then
+      ./convert_to_bmp.sh -o decrease_brightness -i "$IMAGE_DATA"
       viewnior ../images/output/decrease_brightness.bmp
     fi
     ;;
   "Invert")
-    if [[ $INVERT == $IMAGE_HEADER ]]; then
-      ./convert_to_bmp.sh -i invert
+    if [[ $INVERT == [[$IMAGE_HEADER]] ]]; then
+      ./convert_to_bmp.sh -o invert -i "$IMAGE_DATA"
       viewnior ../images/output/invert.bmp
     fi
     ;;
   "Threshold")
-    if [[ $THRESHOLD == $IMAGE_HEADER ]]; then
-      ./convert_to_bmp.sh -i threshold
+    if [[ $THRESHOLD == [[$IMAGE_HEADER]] ]]; then
+      ./convert_to_bmp.sh -o threshold -i "$IMAGE_DATA"
       viewnior ../images/output/threshold.bmp
     fi
     ;;

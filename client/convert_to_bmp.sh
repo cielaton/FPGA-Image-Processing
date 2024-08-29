@@ -12,6 +12,10 @@ while getopts o:i: flag; do
 done
 
 case "$OPERATION" in
+
+"default")
+  echo "$RECEIVED_STRING" | bc >../images/output/default.bmp
+  ;;
 "increase_brightness")
   echo "$RECEIVED_STRING" | bc >../images/output/increase_brightness.bmp
   ;;
@@ -24,7 +28,5 @@ case "$OPERATION" in
 "threshold")
   echo "$RECEIVED_STRING" | bc >../images/output/threshold.bmp
   ;;
-*)
-  command ...
-  ;;
+*) ;;
 esac
