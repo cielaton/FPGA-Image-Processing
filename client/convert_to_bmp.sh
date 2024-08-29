@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
 
 OPERATION=""
-FILE_NAME=""
+RECEIVED_STRING=""
 
-while getopts i: flag; do
+while getopts o:i: flag; do
   case "${flag}" in
-  i) OPERATION=${OPTARG} ;;
-  *) OPERATION="" ;;
+  o) OPERATION=${OPTARG} ;;
+  i) RECEIVED_STRING=${OPTARG} ;;
+  *) ;;
   esac
 done
 
 case "$OPERATION" in
 "increase_brightness")
-  convert -brightness-contrast 20x0 ../images/input/kodim.bmp ../images/output/increase_brightness.bmp >/dev/null
+  echo "$RECEIVED_STRING" | bc >../images/output/increase_brightness.bmp
   ;;
 "decrease_brightness")
-  convert -brightness-contrast -20x0 ../images/input/kodim.bmp ../images/output/decrease_brightness.bmp >/dev/null
+  echo "$RECEIVED_STRING" | bc >../images/output/decrease_brightness.bmp
   ;;
 "invert")
-  convert ../images/input/kodim.bmp -channel RGB -negate ../images/output/invert.bmp >/dev/null
-  convert ../images/output/invert.bmp -colorspace gray ../images/output/invert.bmp >/dev/null
+  echo "$RECEIVED_STRING" | bc >../images/output/invert.bmp
   ;;
 "threshold")
-  convert ../images/input/kodim.bmp -colorspace gray -channel rgb -threshold 50% +channel ../images/output/threshold.bmp > /dev/null
+  echo "$RECEIVED_STRING" | bc >../images/output/threshold.bmp
   ;;
 *)
   command ...
