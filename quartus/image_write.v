@@ -127,7 +127,7 @@ module image_write #(
     end
   end
 
-  assign done = (pixelDataCount == 196607) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
+  assign done = (pixelDataCount == WIDTH*HEIGHT/2-1) ? 1'b1 : 1'b0; // Set the done flag once all pixels were processed
 
 
   always @(posedge HCLK, negedge HRESET) begin
@@ -155,6 +155,13 @@ module image_write #(
         $fwrite(file, "%c", bmpOut[i+3][7:0]);
         $fwrite(file, "%c", bmpOut[i+4][7:0]);
         $fwrite(file, "%c", bmpOut[i+5][7:0]);
+
+        $display("%h", bmpOut[i+0][7:0]);
+        $display("%h", bmpOut[i+1][7:0]);
+        $display("%h", bmpOut[i+2][7:0]);
+        $display("%h", bmpOut[i+3][7:0]);
+        $display("%h", bmpOut[i+4][7:0]);
+        $display("%h", bmpOut[i+5][7:0]);
       end
 
       write_file_done = 1'b1;
